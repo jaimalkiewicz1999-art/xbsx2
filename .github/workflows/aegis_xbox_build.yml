@@ -1,0 +1,28 @@
+name: AegisSX2 Xbox Dev Mode
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/aegis-xbox-console-ui
+
+jobs:
+  build_xbox_one:
+    name: Xbox One / compatibility
+    uses: ./.github/workflows/windows_build_uwp.yml
+    with:
+      jobName: "AegisSX2 UWP Release"
+      artifactPrefixName: "AegisSX2-xbox-x64-release"
+      configuration: Release
+      simd: "SSE4"
+    secrets: inherit
+
+  build_xbox_series:
+    name: Xbox Series X|S
+    uses: ./.github/workflows/windows_build_uwp.yml
+    with:
+      jobName: "AegisSX2 UWP AVX2"
+      artifactPrefixName: "AegisSX2-xbox-series-avx2"
+      configuration: "Release AVX2"
+      simd: "AVX2"
+    secrets: inherit
