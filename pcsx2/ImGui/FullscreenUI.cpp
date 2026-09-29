@@ -3607,8 +3607,13 @@ void FullscreenUI::DrawAboutWindow()
 
 void FullscreenUI::OpenCoverDownloaderWindow()
 {
+	static constexpr std::string_view DEFAULT_COVER_URL =
+		"https://raw.githubusercontent.com/xlenore/ps2-covers/main/covers/default/${serial}.jpg";
+
 	s_cover_downloader_open = true;
 	s_cover_downloader_urls_buffer.fill('\0');
+	const size_t cover_url_length = std::min(DEFAULT_COVER_URL.size(), s_cover_downloader_urls_buffer.size() - 1);
+	std::copy_n(DEFAULT_COVER_URL.data(), cover_url_length, s_cover_downloader_urls_buffer.data());
 	{
 		std::lock_guard<std::mutex> lock(s_cover_downloader_mutex);
 		s_cover_downloader_use_title_filenames = false;
@@ -3798,9 +3803,9 @@ void FullscreenUI::DrawCoverDownloaderWindow()
 		BeginMenuButtons();
 		ResetFocusHere();
 
-		ImGui::TextWrapped("%s", FSUI_CSTR("XBSX2 can automatically download covers for games which do not currently have a cover set. We do not host any cover images, the user must provide their own source for images."));
+		ImGui::TextWrapped("%s", FSUI_CSTR("AegisSX2 can automatically download covers for games which do not currently have artwork. A community cover source is prefilled and can be replaced with your own source."));
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + LayoutScale(8.0f));
-		ImGui::TextWrapped("%s", FSUI_CSTR("Enter one or more cover image URL templates below. Variables such as ${serial} and ${title} are supported. See the Qt Cover Downloader for more information."));
+		ImGui::TextWrapped("%s", FSUI_CSTR("The default source is xlenore/ps2-covers. URL templates support variables such as ${serial} and ${title}."));
 
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + LayoutScale(10.0f));
 
