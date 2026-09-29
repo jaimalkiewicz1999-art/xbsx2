@@ -1,4 +1,16 @@
-# XBSX2
+# AegisSX2
+
+AegisSX2 is an Xbox Developer Mode PS2 emulator built on XBSX2/PCSX2. This fork keeps XBSX2's proven UWP/WinRT host, Xbox input, Direct3D rendering, storage support, and PCSX2 emulation core while adding a console-first frontend influenced by PS5SX2.
+
+### Aegis milestone 1
+
+- Fresh installs boot directly into the controller-friendly game cover grid.
+- The Cover Downloader is prefilled with the community-maintained `xlenore/ps2-covers` serial template; the source remains editable.
+- Xbox Series X|S uses the existing AVX2 build path, while the standard UWP build remains available for Xbox One-class hardware.
+- Existing XBSX2 settings, save states, per-game configuration, patches, RetroAchievements, removable-storage access, and emulator behavior are preserved.
+- No BIOS files or game images are included. Use dumps from hardware and games you own.
+
+The Xbox-specific build lives in `pcsx2-uwp/`. The experimental Aegis work is developed on `feature/aegis-xbox-console-ui`.
 
 <p align="center">
   <img src="bin/resources/icons/AppBanner.svg" alt="XBSX2 App Banner" width="840" />
