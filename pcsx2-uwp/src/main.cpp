@@ -264,6 +264,12 @@ bool WinRTHost::InitializeConfig()
 		// s_settings_interface->SetBoolValue("EmuCore/GS", "FrameLimitEnable", false);
 		s_settings_interface->SetIntValue("EmuCore/GS", "VsyncEnable", 1);
 
+		// AegisSX2 is controller-first on Xbox. These are first-run defaults only;
+		// existing user configurations are left untouched.
+		s_settings_interface->SetBoolValue("UI", "FullscreenUIDefaultToGameList", true);
+		s_settings_interface->SetIntValue("UI", "DefaultFullscreenUIGameView", 0);
+		s_settings_interface->SetBoolValue("UI", "FullscreenUIShowGameGridTitles", true);
+
 		auto lock = Host::GetSettingsLock();
 		if (!s_settings_interface->Save(&error))
 		{
