@@ -44,6 +44,8 @@
 
 #include "fmt/chrono.h"
 
+#include <algorithm>
+
 //////////////////////////////////////////////////////////////////////////
 // Utility
 //////////////////////////////////////////////////////////////////////////
@@ -718,7 +720,9 @@ void FullscreenUI::Render()
 		if (s_game_settings_interface)
 		{
 			Host::RunOnCPUThread([]() {
+#if defined(__cpp_exceptions) || defined(_CPPUNWIND)
 				try
+#endif
 				{
 					if (!s_game_settings_interface)
 						return;
@@ -756,6 +760,7 @@ void FullscreenUI::Render()
 					if (VMManager::HasValidVM())
 						VMManager::ReloadGameSettings();
 				}
+#if defined(__cpp_exceptions) || defined(_CPPUNWIND)
 				catch (const std::exception& e)
 				{
 					std::string msg(e.what());
@@ -773,6 +778,7 @@ void FullscreenUI::Render()
 							FSUI_STR("Failed to apply game settings (unknown error)."));
 					});
 				}
+#endif
 			});
 		}
 		s_game_settings_changed.store(false, std::memory_order_release);
@@ -2674,8 +2680,8 @@ void FullscreenUI::DrawGameListWindow()
 	if (BeginFullscreenWindow(ImVec2(0.0f, 0.0f), heading_size, "gamelist_view", MulAlpha(UIPrimaryColor, bg_alpha)))
 	{
 		static constexpr float ITEM_WIDTH = 25.0f;
-		static constexpr const char* icons[] = {ICON_FA_BORDER_ALL, ICON_FA_LIST};
-		static constexpr const char* titles[] = {FSUI_NSTR("Game Grid"), FSUI_NSTR("Game List")};
+		static constexpr const char* icons[] = {ICON_FA_BORDER_ALL, ICON_FA_LIST, ICON_FA_CUBE};
+		static constexpr const char* titles[] = {FSUI_NSTR("Game Grid"), FSUI_NSTR("Game List"), FSUI_NSTR("Game Shelf")};
 		static constexpr u32 count = std::size(titles);
 
 		BeginNavBar();
@@ -2702,7 +2708,8 @@ void FullscreenUI::DrawGameListWindow()
 
 	if (ImGui::IsKeyPressed(ImGuiKey_NavGamepadContextMenu, false) || ImGui::IsKeyPressed(ImGuiKey_F1, false))
 	{
-		s_game_list_view = (s_game_list_view == GameListView::Grid) ? GameListView::List : GameListView::Grid;
+		s_game_list_view = static_cast<GameListView>(
+			(static_cast<u32>(s_game_list_view) + 1u) % static_cast<u32>(GameListView::Count));
 	}
 	else if (ImGui::IsKeyPressed(ImGuiKey_GamepadStart, false) || ImGui::IsKeyPressed(ImGuiKey_F2))
 	{
@@ -2722,6 +2729,7 @@ void FullscreenUI::DrawGameListWindow()
 	switch (s_game_list_view)
 	{
 		case GameListView::Grid:
+		case GameListView::Shelf:
 			DrawGameGrid(heading_size);
 			break;
 		case GameListView::List:
@@ -2998,6 +3006,7 @@ void FullscreenUI::DrawGameList(const ImVec2& heading_size)
 
 void FullscreenUI::DrawGameGrid(const ImVec2& heading_size)
 {
+	const bool shelf_view = (s_game_list_view == GameListView::Shelf);
 	ImGuiIO& io = ImGui::GetIO();
 	if (!BeginFullscreenWindow(
 			ImVec2(0.0f, heading_size.y),
@@ -3013,6 +3022,13 @@ void FullscreenUI::DrawGameGrid(const ImVec2& heading_size)
 
 	ResetFocusHere();
 	BeginMenuButtons();
+	if (s_game_list_sorted_entries.empty() && MenuButton(
+			FSUI_ICONSTR(ICON_FA_FOLDER_PLUS, "Add a Game Folder"),
+			FSUI_CSTR("Choose the folder containing your PS2 game dumps, then scan it to fill the library.")))
+	{
+		s_current_main_window = MainWindowType::GameListSettings;
+		QueueResetFocus(FocusResetType::WindowChanged);
+	}
 
 	const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -3073,7 +3089,40 @@ void FullscreenUI::DrawGameGrid(const ImVec2& heading_size)
 			bb.Min += style.FramePadding;
 			bb.Max -= style.FramePadding;
 
-			DrawGameCover(entry, ImGui::GetWindowDrawList(), bb.Min, bb.Min + image_size);
+			if (shelf_view)
+			{
+				ImDrawList* const draw_list = ImGui::GetWindowDrawList();
+				const ImVec2 cover_min = bb.Min + ImVec2(LayoutScale(11.0f), 0.0f);
+				const ImVec2 cover_max = bb.Min + image_size;
+				const float lean = LayoutScale(8.0f);
+				const float depth = LayoutScale(12.0f);
+				const ImVec2 top_left(cover_min.x, cover_min.y + lean);
+				const ImVec2 top_right(cover_max.x, cover_min.y);
+				const ImVec2 bottom_right(cover_max.x, cover_max.y - lean);
+				const ImVec2 bottom_left(cover_min.x, cover_max.y);
+				draw_list->AddRectFilled(ImVec2(cover_min.x, cover_max.y),
+					ImVec2(cover_max.x + depth, cover_max.y + depth), IM_COL32(0, 0, 0, 90));
+				draw_list->AddQuadFilled(ImVec2(top_left.x - depth, top_left.y + depth), top_left,
+					bottom_left, ImVec2(bottom_left.x - depth, bottom_left.y + depth), IM_COL32(26, 31, 45, 255));
+				if (const GSTexture* const cover = GetGameListCover(entry))
+				{
+					draw_list->AddImageQuad(reinterpret_cast<ImTextureID>(cover->GetNativeHandle()),
+						top_left, top_right, bottom_right, bottom_left);
+				}
+				else
+				{
+					draw_list->AddQuadFilled(top_left, top_right, bottom_right, bottom_left,
+						IM_COL32(44, 52, 70, 255));
+					DrawGameCover(entry, draw_list, cover_min, cover_max - ImVec2(lean, lean));
+				}
+				if (hovered)
+					draw_list->AddQuad(top_left, top_right, bottom_right, bottom_left,
+						IM_COL32(255, 255, 255, 220), LayoutScale(2.0f));
+			}
+			else
+			{
+				DrawGameCover(entry, ImGui::GetWindowDrawList(), bb.Min, bb.Min + image_size);
+			}
 
 			const bool show_titles = Host::GetBaseBoolSettingValue("UI", "FullscreenUIShowGameGridTitles", true);
 
@@ -3319,6 +3368,7 @@ void FullscreenUI::DrawGameListSettingsWindow()
 	static constexpr const char* view_types[] = {
 		FSUI_NSTR("Game Grid"),
 		FSUI_NSTR("Game List"),
+		FSUI_NSTR("Game Shelf"),
 	};
 	static constexpr const char* sort_types[] = {
 		FSUI_NSTR("Type"),
@@ -3369,7 +3419,9 @@ void FullscreenUI::DrawGameListSettingsWindow()
 void FullscreenUI::SwitchToGameList()
 {
 	s_current_main_window = MainWindowType::GameList;
-	s_game_list_view = static_cast<GameListView>(Host::GetBaseIntSettingValue("UI", "DefaultFullscreenUIGameView", 0));
+	s_game_list_view = static_cast<GameListView>(
+		std::clamp(Host::GetBaseIntSettingValue("UI", "DefaultFullscreenUIGameView", 0), 0,
+			static_cast<int>(GameListView::Count) - 1));
 	{
 		auto lock = Host::GetSettingsLock();
 		PopulateGameListDirectoryCache(Host::Internal::GetBaseSettingsLayer());

@@ -190,6 +190,7 @@ namespace FullscreenUI
 	{
 		Grid,
 		List,
+		Shelf,
 		Count
 	};
 

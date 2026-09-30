@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AegisSX2 phone settings</title>
+<style>
+  :root { color-scheme: dark; font: 16px system-ui, sans-serif; background: #101723; color: #f5f8ff; }
+  body { max-width: 36rem; margin: auto; padding: 1.25rem; }
+  h1 { font-size: 1.8rem; margin-bottom: .3rem; }
+  p { color: #bdcadc; line-height: 1.45; }
+  label { display: block; margin: 1.1rem 0; font-weight: 600; }
+  select, input[type=file], button { width: 100%; box-sizing: border-box; font: inherit; margin-top: .4rem; padding: .75rem; border: 1px solid #54647e; border-radius: .65rem; background: #1c2b40; color: inherit; }
+  label:has(input[type=checkbox]) { display: flex; align-items: center; gap: .7rem; }
+  input[type=checkbox] { width: 1.2rem; height: 1.2rem; }
+  button { background: #356cff; border: 0; font-weight: 700; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  .note { padding: .8rem; border-radius: .65rem; background: #1c2b40; }
+  #status { min-height: 1.5rem; }
+</style>
+<main>
+  <h1>AegisSX2 settings</h1>
+  <p>Edit a copy of your Xbox <strong>PCSX2.ini</strong> on your phone. This page works offline and does not upload the file.</p>
+  <label>Current settings file <input id="file" type="file" accept=".ini,text/plain"></label>
+  <label>Render resolution
+    <select id="quality">
+      <option value="1">Native PS2</option>
+      <option value="2">2× HD</option>
+      <option value="3">3× Full HD</option>
+      <option value="4">4× QHD</option>
+      <option value="6">6× 4K</option>
+    </select>
+  </label>
+  <label><input id="widescreen" type="checkbox"> Apply available widescreen patches</label>
+  <label><input id="noInterlace" type="checkbox"> Apply available no-interlacing patches</label>
+  <label><input id="vsync" type="checkbox"> Enable vertical sync</label>
+  <p class="note">Higher resolution needs more GPU time. A game's frame rate changes only when that game has a compatible FPS patch; increasing emulation speed is not the same as a 60 FPS patch.</p>
+  <button id="download" disabled>Download edited PCSX2.ini</button>
+  <p id="status" role="status" aria-live="polite"></p>
+</main>
+<script src="settings.js"></script>
+<script>
+  "use strict";
+  let original = null;
+  const controls = Object.fromEntries(["file", "quality", "widescreen", "noInterlace", "vsync", "download", "status"]
+    .map(id => [id, document.getElementById(id)]));
+  controls.file.addEventListener("change", async () => {
+    original = null;
+    controls.download.disabled = true;
+    const file = controls.file.files?.[0];
+    if (!file) return;
+    if (file.name.toLowerCase() !== "pcsx2.ini" || file.size > 2_000_000) {
+      controls.status.textContent = "Choose your PCSX2.ini file (up to 2 MB).";
+      return;
+    }
+    original = await file.text();
+    controls.quality.value = String(Math.round(Number(AegisSettings.readValue(original, "EmuCore/GS", "upscale_multiplier")) || 1));
+    if (!controls.quality.value) controls.quality.value = "1";
+    controls.widescreen.checked = AegisSettings.readBoolean(original, "EmuCore", "EnableWideScreenPatches");
+    controls.noInterlace.checked = AegisSettings.readBoolean(original, "EmuCore", "EnableNoInterlacingPatches");
+    controls.vsync.checked = AegisSettings.readBoolean(original, "EmuCore/GS", "VsyncEnable");
+    controls.download.disabled = false;
+    controls.status.textContent = "Settings loaded. Other settings will be kept.";
+  });
+  controls.download.addEventListener("click", () => {
+    if (original === null) return;
+    const edited = AegisSettings.applySettings(original, {
+      quality: Number(controls.quality.value), widescreen: controls.widescreen.checked,
+      noInterlace: controls.noInterlace.checked, vsync: controls.vsync.checked,
+    });
+    const url = URL.createObjectURL(new Blob([edited], {type: "text/plain"}));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "PCSX2.ini";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    controls.status.textContent = "Edited settings downloaded. Keep a copy of your original file.";
+  });
+</script>
+</html>

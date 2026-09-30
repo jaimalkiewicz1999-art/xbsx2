@@ -3095,6 +3095,22 @@ void FullscreenUI::DrawGraphicsSettingsPage(SettingsInterface* bsi, bool show_ad
 
 	BeginMenuButtons();
 
+	MenuHeading(FSUI_CSTR("Aegis Graphics"));
+	if (is_hardware)
+	{
+		DrawStringListSetting(bsi, FSUI_ICONSTR(ICON_FA_ARROW_UP_RIGHT_FROM_SQUARE, "Resolution Preset"),
+			FSUI_CSTR("Raises render resolution; higher values need more GPU time and do not increase game FPS."),
+			"EmuCore/GS", "upscale_multiplier", "1.000000", s_shown_resolution_options,
+			s_shown_resolution_values, num_resolutions, true);
+	}
+	if (IsEditingGameSettings(bsi) &&
+		MenuButton(FSUI_ICONSTR(ICON_FA_GAUGE_HIGH, "Game Patches"),
+			FSUI_CSTR("Choose a game-specific FPS patch here if one is available for this game.")))
+	{
+		s_settings_page = SettingsPage::Patches;
+		QueueResetFocus(FocusResetType::WindowChanged);
+	}
+
 	MenuHeading(FSUI_CSTR("Graphics API"));
 	DrawStringListSetting(bsi, FSUI_ICONSTR(ICON_FA_PAINTBRUSH, "Graphics API"), FSUI_CSTR("Selects the API used to render the emulated GS."), "EmuCore/GS",
 		"Renderer", "-1", s_renderer_names, s_renderer_values, std::size(s_renderer_names), true);

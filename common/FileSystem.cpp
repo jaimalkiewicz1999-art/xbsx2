@@ -827,7 +827,7 @@ std::vector<std::string> FileSystem::GetRootDirectoryList()
 			ptr += len + 1u;
 		}
 	}
-#elif defined(WINRT_XBOX)
+#elif defined(_WIN32) && defined(WINRT_XBOX)
 	const auto add_unique_if_not_empty = [&results](std::string path) {
 		if (path.empty() || std::find(results.begin(), results.end(), path) != results.end())
 			return;
