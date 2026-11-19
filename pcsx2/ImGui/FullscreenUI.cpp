@@ -718,7 +718,10 @@ void FullscreenUI::Render()
 		if (s_game_settings_interface)
 		{
 			Host::RunOnCPUThread([]() {
+				// Native MSVC supports these handlers even without /EH; other compilers require exceptions.
+#if (defined(_MSC_VER) && !defined(__clang__)) || defined(__cpp_exceptions)
 				try
+#endif
 				{
 					if (!s_game_settings_interface)
 						return;
@@ -756,6 +759,7 @@ void FullscreenUI::Render()
 					if (VMManager::HasValidVM())
 						VMManager::ReloadGameSettings();
 				}
+#if (defined(_MSC_VER) && !defined(__clang__)) || defined(__cpp_exceptions)
 				catch (const std::exception& e)
 				{
 					std::string msg(e.what());
@@ -773,6 +777,7 @@ void FullscreenUI::Render()
 							FSUI_STR("Failed to apply game settings (unknown error)."));
 					});
 				}
+#endif
 			});
 		}
 		s_game_settings_changed.store(false, std::memory_order_release);

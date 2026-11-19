@@ -8,4 +8,6 @@
 #include <cstdio>
 
 // temporary measure
+#if defined(_WIN32)
 #define WINRT_XBOX
+#endif
