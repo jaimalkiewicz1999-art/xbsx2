@@ -707,7 +707,9 @@ static std::array<const char*, static_cast<u32>(InputSourceType::Count)> s_input
 #if !defined(WINRT_XBOX)
 	"DInput",
 #endif
+#endif
 	"SDL",
+#ifdef _WIN32
 	"XInput",
 #endif
 }};
@@ -735,9 +737,11 @@ bool InputManager::GetInputSourceDefaultEnabled(InputSourceType type)
 		case InputSourceType::DInput:
 			return false;
 #endif
+#endif
 		case InputSourceType::SDL:
 			return true;
 
+#if defined(_WIN32)
 		case InputSourceType::XInput:
 			return false;
 #endif
@@ -1874,7 +1878,9 @@ void InputManager::UpdateInputSourceState(SettingsInterface& si, std::unique_loc
 #if !defined(WINRT_XBOX)
 #include "Input/DInputSource.h"
 #endif
+#endif
 #include "Input/SDLInputSource.h"
+#ifdef _WIN32
 #include "Input/XInputSource.h"
 #endif
 
@@ -1884,7 +1890,9 @@ void InputManager::ReloadSources(SettingsInterface& si, std::unique_lock<std::mu
 #if !defined(WINRT_XBOX)
 	UpdateInputSourceState<DInputSource>(si, settings_lock, InputSourceType::DInput);
 #endif
+#endif
 	UpdateInputSourceState<SDLInputSource>(si, settings_lock, InputSourceType::SDL);
+#ifdef _WIN32
 	UpdateInputSourceState<XInputSource>(si, settings_lock, InputSourceType::XInput);
 #endif
 }
