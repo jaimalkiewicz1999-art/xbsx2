@@ -7,6 +7,10 @@ on:
       - reopened
       - synchronize
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   check-commit-message:
     name: Check Commit Message
