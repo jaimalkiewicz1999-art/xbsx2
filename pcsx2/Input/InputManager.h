@@ -27,7 +27,9 @@ enum class InputSourceType : u32
 #if !defined(WINRT_XBOX)
 	DInput,
 #endif
+#endif
 	SDL,
+#ifdef _WIN32
 	XInput,
 #endif
 	Count,
